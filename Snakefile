@@ -38,6 +38,22 @@ configfile: "configs/bundle_config.yaml"
 configfile: "configs/powerplantmatching_config.yaml"
 configfile: "config.yaml"
 
+# Determine the year/scenario-specific config file as specified in the CLI
+# Base case is default, in case none is specified. 
+year = int(config.get("year", 2023))
+scenario = config.get("scenario", "base")
+
+# Make sure the specified config file actually exists
+scenario_config_path = Path(f"configs/scenarios/config.{year}_{scenario}.yaml")
+
+if not scenario_config_path.exists():
+    raise FileNotFoundError(f"Scenario config file not found: {scenario_config_path}")
+
+# Merge the scenario config into the main config
+with open(scenario_config_path) as f:
+    scenario_config = yaml.safe_load(f)
+
+config.update(scenario_config)
 
 check_config_version(config=config)
 

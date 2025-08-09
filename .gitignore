@@ -33,6 +33,7 @@ dag.svg
 gurobi.log
 gadm_shapes.geojson
 doc/*.vscode/settings.json
+visualizer.ipynb
 
 # Untracked folders (and files within)
 bak
@@ -59,8 +60,8 @@ test/tmp/
 playground/
 
 # Specific configuration files
-configs/scenarios/config.*.yaml
-!configs/scenarios/config.NG.yaml
+!configs/scenarios/config.*.yaml
+configs/scenarios/config.NG.yaml
 
 # VS Code-related files
 .vscode
