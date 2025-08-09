@@ -647,7 +647,7 @@ def attach_hydro(n, costs, ppl):
             carrier="hydro",
             bus=hydro["bus"],
             p_nom=hydro["p_nom"],
-            max_hours=hydro_max_hours,
+            max_hours=hydro["max_hours"],
             capital_cost=(
                 costs.at["hydro", "capital_cost"]
                 if c.get("hydro_capital_cost")
@@ -656,8 +656,8 @@ def attach_hydro(n, costs, ppl):
             marginal_cost=costs.at["hydro", "marginal_cost"],
             p_max_pu=1.0,  # dispatch
             p_min_pu=0.0,  # store
-            efficiency_dispatch=costs.at["hydro", "efficiency"],
-            efficiency_store=0.0,
+            efficiency_dispatch=c.get("efficiency", 0.95),
+            efficiency_store=c.get("efficiency", 0.95),
             cyclic_state_of_charge=True,
             inflow=inflow_t.loc[:, hydro.index],
         )

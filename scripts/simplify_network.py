@@ -743,8 +743,11 @@ def drop_isolated_nodes(n, threshold):
 
     n.mremove("Bus", i_to_drop)
     n.mremove("Load", i_loads_drop)
-    n.mremove("Generator", i_generators_drop)
 
+    n = correct_geothermal(n, i_generators_drop) # Add the geothermal generators that would be dropped to bus 56 which is very close to the capital city.
+
+    i_generators_drop = i_generators_drop[~i_generators_drop.str.contains('geothermal', case=False)] # So that it can remove any generator except the geothermal ones.
+    n.mremove("Generator", i_generators_drop)
     n.determine_network_topology()
 
     load_mean_final = n.loads_t.p_set.mean().mean()
@@ -756,6 +759,42 @@ def drop_isolated_nodes(n, threshold):
 
     return n
 
+def correct_geothermal(n, gen_index):
+    # Step 1: Filter geothermal generators from your given index
+    geothermal_from_index = gen_index[gen_index.str.contains("geothermal")]
+
+    # Step 2: Get the existing geothermal generator which is located at bus 56
+    geo_bus_56 = n.generators[
+        (n.generators.carrier == "geothermal") & (n.generators.bus == "56")
+    ]
+
+    if geothermal_from_index.empty or geo_bus_56.empty:
+        logger.info("No geothermal generators to move or no target at bus 56.")
+    else:
+        target_name = geo_bus_56.index[0]
+
+        # Exclude the bus 56 generator from merging if it's in the provided index already
+        geothermal_to_merge = geothermal_from_index.difference([target_name])
+
+        if geothermal_to_merge.empty:
+            logger.info("No additional geothermal generators from index to merge.")
+        else:
+            # Sum their capacities
+            added_capacity = n.generators.loc[
+                geothermal_to_merge, "p_nom"
+            ].sum()
+
+            # Add to geothermal at bus 56
+            n.generators.at[target_name, "p_nom"] += added_capacity
+
+            # Remove merged generators
+            n.generators.drop(geothermal_to_merge, inplace=True)
+
+            logger.info(
+                f"Added {added_capacity:.2f} MW to '{target_name}' and removed {len(geothermal_to_merge)} generator(s)."
+            )
+
+    return n
 
 def transform_to_gdf(n, network_crs):
     buses_df = n.buses.copy()

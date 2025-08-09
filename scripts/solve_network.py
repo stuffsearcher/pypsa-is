@@ -146,8 +146,31 @@ def prepare_network(n, solve_opts, config):
     if snakemake.config["foresight"] == "myopic":
         add_land_use_constraint(n)
 
+    n = parameters_fix(n)
     return n
 
+def parameters_fix(n):
+    # Select only hydro storage units
+    hydro_storage_units = n.storage_units[n.storage_units.carrier == "hydro"]
+
+    # # Compute new initial SOC = 4 * p_nom
+    # new_soc_values = 2000 * hydro_storage_units["p_nom"]
+
+    # It shouldn't exceed the maximum storage capacity
+    energy_capacity = n.storage_units["p_nom"] * n.storage_units["max_hours"]
+    # Assign to the network
+
+    n.storage_units["p_nom_extendable"] = False
+    n.storage_units["capital_cost"] = 10_000
+    n.storage_units["marginal_cost"] = 0
+    n.storage_units.state_of_charge_initial_per_period = True
+    n.storage_units.cyclic_state_of_charge = True
+    n.storage_units.cyclic_state_of_charge_per_period = False
+    n.generators.loc[n.generators.carrier == "geothermal", "capital_cost"] = (
+        300_000
+    )
+
+    return n
 
 def add_CCL_constraints(n, config):
     """
