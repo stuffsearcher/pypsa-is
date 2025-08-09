@@ -1,1 +1,24 @@
-Name,Fueltype,Technology,Set,Country,Capacity,Efficiency,Duration,Volume_Mm3,DamHeight_m,StorageCapacity_MWh,DateIn,DateRetrofit,DateOut,lat,lon,EIC,projectID,bus
+Name,Fueltype,Technology,Set,Country,Capacity,Efficiency,Duration,Volume_Mm3,DamHeight_m,StorageCapacity_MWh,DateIn,DateRetrofit,DateOut,lat,lon,EIC,projectID,bus,initial_state
+Blanda,Hydro,Reservoir,PP,IS,150,,104.2766667,20,287,0,1991,1991,2091,65.4161,-19.8199,{nan},"{'GHPT': {'G601815'}, 'GEO': {'GEO-45242'}, 'GPD': {'WRI1002790'}}",13,450
+Budarhals,Hydro,Reservoir,PP,IS,95,,28.68421053,25,40,0,2014,2014,2114,64.2353,-19.3686,{nan},"{'GHPT': {'G601816'}, 'GEO': {'GEO-45247'}, 'GPD': {'WRI1002791'}}",129,285
+Vatnsfell,Hydro,Reservoir,PP,IS,90,,5.904166667,3,65,0,2001,2001,2101,64.1965,-19.0325,{nan},"{'GHPT': {'G601824'}, 'GEO': {'GEO-45245'}, 'GPD': {'WRI1002811'}}",126,270
+Sultartangi,Hydro,Reservoir,PP,IS,133,,98.26390977,109,44,0,1999,1999,2099,64.1673,-19.6206,{nan},"{'GHPT': {'G601823'}, 'GEO': {'GEO-45243'}, 'GPD': {'WRI1002809'}}",36,399
+Sigalda,Hydro,Reservoir,PP,IS,150,,106.82,140,42,0,1977,1977,2077,64.1732,-19.1269,{nan},"{'GHPT': {'G601822'}, 'GEO': {'GEO-45246'}, 'GPD': {'WRI1002807'}}",81,450
+Hrauneyjafoss,Hydro,Reservoir,PP,IS,210,,37.68285714,33,88,0,1981,1981,2081,64.2008,-19.2406,{nan},"{'GHPT': {'G601820'}, 'GEO': {'GEO-45248'}, 'GPD': {'WRI1002797'}}",97,630
+Burfell I&II,Hydro,Reservoir,PP,IS,370,,5.674628378,6.7,115,0,1969,1997,2097,64.10175,-19.82365,"{nan, nan}","{'GHPT': {'G601817', 'G601818'}, 'GEO': {'GEO-45244'}, 'GPD': {'WRI1002792'}}",8,1110
+Fljotsdals,Hydro,Reservoir,PP,IS,690,,5236.73913,2210,600,0,2007,2007,2107,64.9473,-15.7929,{nan},"{'GHPT': {'G601819'}, 'GPD': {'WRI1002794'}}",62,2070
+Irafoss Iceland,Hydro,Reservoir,PP,IS,47.09235669,,168.0400081,33,88,0,1953,1953,2053,64.0834,-20.9984,"{nan, nan, nan}","{'GEO': {'GEO-45252'}, 'GPD': {'WRI1002799'}}",23,141.2770701
+Lagarfoss Iceland,Hydro,Run-Of-River,PP,IS,27.2,,,0,0,0,1975,2005,2105,65.5072,-14.3665,"{nan, nan}","{'GEO': {'GEO-45255'}, 'GPD': {'WRI1002801'}}",69,
+Laxa Plants Iceland,Hydro,Run-Of-River,PP,IS,24,,,0,39,0,1939,1939,2039,65.8164,-17.30996,"{nan, nan, nan, nan}","{'GEO': {'GEO-45256'}, 'GPD': {'WRI1002802'}}",87,
+Steingrimsstod Iceland,Hydro,Reservoir,PP,IS,26.65605096,,8,0,20.5,0,1959,1959,2059,64.1295,-21.0253,"{nan, nan}","{'GEO': {'GEO-45253'}, 'GPD': {'WRI1002808'}}",122,79.96815288
+Lj�safoss Power Station,Hydro,Run-Of-River,PP,IS,15.10509554,,,0,17,0,1937,1937,2037,64.09427,-21.01047,"{nan, nan, nan}",{'GEO': {'GEO-45254'}},23,
+Andakilsvirkjun Hydropower Station,Hydro,Reservoir,PP,IS,8,,6,0,0,0,1947,1947,2047,64.5386,-21.695,{nan},{'GPD': {'WRI1002787'}},26,24
+Ljosafossvirkjun,Hydro,Reservoir,PP,IS,14.6,,6,0,17,0,1937,1937,2037,64.0944,-21.0107,{nan},{'GPD': {'WRI1002803'}},23,43.8
+Theistareykir Geothermal,geothermal,Steam Turbine,PP,IS,90,,,0,0,0,2017,2017,2032,65.89055068,-16.96251816,"{nan, nan, nan}","{'GGTPT': {'G100000700288', 'G100000700287', 'G100000700339'}}",96,
+Hellishei�arvirkjun,geothermal,Steam Turbine,PP,IS,303,,,0,0,0,2006,2006,2035,64.037222,-21.400833,"{nan, nan, nan}",,,
+Nesjavellir Geothermal Power Station,geothermal,Steam Turbine,PP,IS,120,,,0,0,0,1990,1990,2035,64.108056,-21.256389,"{nan, nan, nan}",,,
+Reykjanes Power Station,geothermal,Steam Turbine,PP,IS,150,,,0,0,0,2006,2006,2035,63.826389,-22.681944,"{nan, nan, nan}",,,
+Svartsengi Power Station,geothermal,Steam Turbine,PP,IS,75,,,0,0,0,1976,2026,2066,63.878611,-22.432778,"{nan, nan, nan}",,,
+Krafla Power Station,geothermal,Steam Turbine,PP,IS,60,,,0,0,0,1977,1999,2035,65.703861,-16.773056,"{nan, nan, nan}",,,
+Bjarnarflag,geothermal,Steam Turbine,PP,IS,5,,,0,0,0,1969,1969,2035,65.6409,-16.8569,"{nan, nan, nan}",,,
+Hafid Wind Farm,Wind,,PP,IS,1.8,,,0,0,0,2013,2013,2035,64.129522,-19.727905,"{nan, nan, nan}",,,
