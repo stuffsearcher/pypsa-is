@@ -164,12 +164,29 @@ def parameters_fix(n):
     n.storage_units["capital_cost"] = 10_000
     n.storage_units["marginal_cost"] = 0
     n.storage_units.state_of_charge_initial_per_period = True
-    n.storage_units.cyclic_state_of_charge = True
+    n.storage_units.cyclic_state_of_charge = False
     n.storage_units.cyclic_state_of_charge_per_period = False
     n.generators.loc[n.generators.carrier == "geothermal", "capital_cost"] = (
         300_000
     )
 
+    last_snap = n.snapshots[-1]
+
+    # Ensure the DataFrame exists with correct shape
+    n.storage_units_t["state_of_charge_set"] = pd.DataFrame(
+        index=n.snapshots, columns=n.storage_units.index, dtype=float
+    )
+
+    # Compute target SoC for each unit
+    target_soc = (
+        n.storage_units.p_nom * n.storage_units.max_hours * 0.9
+    ).values
+
+    # Assign safely using .loc with both axes
+    n.storage_units_t.state_of_charge_set.loc[last_snap, :] = target_soc
+
+    n.carriers.loc['geothermal', 'co2_emissions'] = 0
+    n.carriers.loc["Load","co2_emissions"] = 0.2571 # Same as oil
     return n
 
 def add_CCL_constraints(n, config):
