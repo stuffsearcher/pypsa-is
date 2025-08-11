@@ -20,6 +20,7 @@ cluster_options:
   alternative_clustering: false # "False" use Voronoi shapes, "True" use GADM shapes  
   simplify_network:
     exclude_carriers: [solar]
+    p_threshold_merge_isolated: 1000 # [MW] isolated buses are being merged into a single isolated bus if a bus mean power is below the specified 
   cluster_network:
     feature: onwind-time
     exclude_carriers: [solar]
@@ -32,6 +33,7 @@ load_options:
 
 electricity:
   base_voltage: 220.
+  co2limit: 0
   powerplants_filter: (DateOut >= 2022 or DateOut != DateOut) and DateIn <= 2040
   custom_powerplants: replace   #  "false" use only powerplantmatching (ppm) data, "merge" combines ppm and custom powerplants, "replace" use only custom powerplants
   operational_reserve: # like https://genxproject.github.io/GenX.jl/stable/Model_Reference/core/#Operational-Reserves
@@ -48,7 +50,7 @@ renewable:
   hydro:
     extendable: true
     efficiency: 0.95
-    multiplier: 10 # inflow multiplier
+    multiplier: 22 # inflow multiplier
     hydro_capital_cost: true
   solar:
     extendable: false

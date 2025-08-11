@@ -20,6 +20,7 @@ cluster_options:
   alternative_clustering: false # "False" use Voronoi shapes, "True" use GADM shapes  
   simplify_network:
     exclude_carriers: [solar]
+    p_threshold_merge_isolated: 1000 # [MW] isolated buses are being merged into a single isolated bus if a bus mean power is below the specified 
   cluster_network:
     feature: onwind-time
     exclude_carriers: [solar]
@@ -48,7 +49,7 @@ renewable:
   hydro:
     extendable: true
     efficiency: 0.95
-    multiplier: 10 # inflow multiplier
+    multiplier: 22 # inflow multiplier
     hydro_capital_cost: true
   solar:
     extendable: false
