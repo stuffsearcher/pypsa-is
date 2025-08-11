@@ -17,7 +17,7 @@ Ljosafossvirkjun,Hydro,Reservoir,PP,IS,14.6,,6,0,17,0,1937,1937,2037,64.0944,-21
 Theistareykir Geothermal,geothermal,Steam Turbine,PP,IS,90,,,0,0,0,2017,2017,2032,65.89055068,-16.96251816,"{nan, nan, nan}","{'GGTPT': {'G100000700288', 'G100000700287', 'G100000700339'}}",96,
 Hellishei�arvirkjun,geothermal,Steam Turbine,PP,IS,303,,,0,0,0,2006,2006,2035,64.037222,-21.400833,"{nan, nan, nan}",,,
 Nesjavellir Geothermal Power Station,geothermal,Steam Turbine,PP,IS,120,,,0,0,0,1990,1990,2035,64.108056,-21.256389,"{nan, nan, nan}",,,
-Reykjanes Power Station,geothermal,Steam Turbine,PP,IS,130,,,0,0,0,2006,2006,2035,63.826389,-22.681944,"{nan, nan, nan}",,,
+Reykjanes Power Station,geothermal,Steam Turbine,PP,IS,150,,,0,0,0,2006,2006,2035,63.826389,-22.681944,"{nan, nan, nan}",,,
 Svartsengi Power Station,geothermal,Steam Turbine,PP,IS,75,,,0,0,0,1976,2026,2066,63.878611,-22.432778,"{nan, nan, nan}",,,
 Krafla Power Station,geothermal,Steam Turbine,PP,IS,60,,,0,0,0,1977,1999,2035,65.703861,-16.773056,"{nan, nan, nan}",,,
 Bjarnarflag,geothermal,Steam Turbine,PP,IS,5,,,0,0,0,1969,1969,2035,65.6409,-16.8569,"{nan, nan, nan}",,,
