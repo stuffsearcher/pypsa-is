@@ -896,10 +896,6 @@ def merge_into_network(n, threshold, aggregation_strategies=dict()):
         .rename("busmap")
     )
 
-    busmap = (
-        n.buses.index.to_series().replace("56").astype(str).rename("busmap")
-    )  # Otherwise ignores this bus for merging.
-
     # return the original network if no changes are detected
     if (busmap.index == busmap).all():
         return n, n.buses.index.to_series()
@@ -988,6 +984,10 @@ def merge_isolated_nodes(n, threshold, aggregation_strategies=dict()):
         .astype(str)
         .rename("busmap")
     )
+
+    busmap = (
+        n.buses.index.to_series().replace("56").astype(str).rename("busmap")
+    )  # Otherwise ignores this bus for merging.
 
     # return the original network if no changes are detected
     if (busmap.index == busmap).all():

@@ -160,15 +160,25 @@ def parameters_fix(n):
     energy_capacity = n.storage_units["p_nom"] * n.storage_units["max_hours"]
     # Assign to the network
 
-    n.storage_units["p_nom_extendable"] = False
-    n.storage_units["capital_cost"] = 10_000
-    n.storage_units["marginal_cost"] = 0
-    n.storage_units.state_of_charge_initial_per_period = True
-    n.storage_units.cyclic_state_of_charge = False
-    n.storage_units.cyclic_state_of_charge_per_period = False
+    n.storage_units.loc[
+        hydro_storage_units.index, "state_of_charge_initial"
+    ] = 0.95 * energy_capacity  # new_soc_values.clip(upper=energy_capacity)
+    n.storage_units.loc[hydro_storage_units.index, "capital_cost"] = 10_000
+    n.storage_units.loc[hydro_storage_units.index, "marginal_cost"] = 0
+    n.storage_units.loc[
+        hydro_storage_units.index, "state_of_charge_initial_per_period"
+    ] = True
+    n.storage_units.loc[
+        hydro_storage_units.index, "cyclic_state_of_charge"
+    ] = False
+    n.storage_units.loc[
+        hydro_storage_units.index, "cyclic_state_of_charge_per_period"
+    ] = False
+
     n.generators.loc[n.generators.carrier == "geothermal", "capital_cost"] = (
         300_000
     )
+    n.generators.loc[n.generators.carrier == "ror", "marginal_cost"] = 0
 
     last_snap = n.snapshots[-1]
 
@@ -177,17 +187,71 @@ def parameters_fix(n):
         index=n.snapshots, columns=n.storage_units.index, dtype=float
     )
 
-    # Compute target SoC for each unit
-    target_soc = (
-        n.storage_units.p_nom * n.storage_units.max_hours * 0.9
-    ).values
-
     # Assign safely using .loc with both axes
-    n.storage_units_t.state_of_charge_set.loc[last_snap, :] = target_soc
+    n.storage_units_t.state_of_charge_set.loc[
+        last_snap, hydro_storage_units.index
+    ] = 0.95 * energy_capacity
 
-    n.carriers.loc['geothermal', 'co2_emissions'] = 0
-    n.carriers.loc["Load","co2_emissions"] = 0.2571 # Same as oil
+    n.carriers.loc["geothermal", "co2_emissions"] = 0
+    n.carriers.loc["Load", "co2_emissions"] = (
+        0.2571  # Same as oil for load shedding
+    )
+
+    if snakemake.config["export"]["endogenous"]:
+        n.add(
+            "Bus",
+            "H2 export bus",
+            carrier="H2",
+        )
+
+        from _helpers import prepare_costs
+
+        # Prepare the costs dataframe
+        Nyears = n.snapshot_weightings.generators.sum() / 8760
+        cost_year = snakemake.config["scenario"]["planning_horizons"][0]
+        costs = prepare_costs(
+            f"resources/{cost_year}_BAU_h2/costs_{cost_year}.csv",
+            snakemake.config["costs"],
+            "GBP",
+            snakemake.config["costs"]["fill_values"],
+            Nyears,
+            snakemake.config["costs"]["default_exchange_rate"],
+        )
+        n.add(
+            "Link",
+            name="H2 export",
+            bus0="IS0 1",
+            bus1="H2 export bus",
+            p_nom_extendable=True,
+            carrier="H2 electrolysis",
+            efficiency=0.6217,
+        )
+
+        n.add(
+            "Store",
+            "H2 export store",
+            bus="H2 export bus",
+            e_nom_extendable=True,
+            carrier="H2",
+            e_initial=0,  # actually not required, since e_cyclic=True
+            marginal_cost=0,
+            capital_cost=costs.at[
+                "hydrogen storage tank type 1 including compressor", "fixed"
+            ],
+            e_cyclic=True,
+        )
+        export_h2 = snakemake.config["export"]["h2export"] * 1e6
+
+        export_profile = export_h2 / 8760
+
+        n.add(
+            "Load",
+            "H2 export load",
+            bus="H2 export bus",
+            p_set=export_profile,
+        )
     return n
+
 
 def add_CCL_constraints(n, config):
     """
@@ -212,7 +276,9 @@ def add_CCL_constraints(n, config):
     agg_p_nom_limits = config["electricity"].get("agg_p_nom_limits")
 
     try:
-        agg_p_nom_minmax = pd.read_csv(agg_p_nom_limits, index_col=list(range(2)))
+        agg_p_nom_minmax = pd.read_csv(
+            agg_p_nom_limits, index_col=list(range(2))
+        )
     except IOError:
         logger.exception(
             "Need to specify the path to a .csv file containing "
@@ -220,7 +286,8 @@ def add_CCL_constraints(n, config):
             "config['electricity']['agg_p_nom_limit']."
         )
     logger.info(
-        "Adding per carrier generation capacity constraints for " "individual countries"
+        "Adding per carrier generation capacity constraints for "
+        "individual countries"
     )
 
     gen_country = n.generators.bus.map(n.buses.country)
@@ -241,8 +308,12 @@ def add_CCL_constraints(n, config):
         lhs.append(ext_carrier_per_country)
     lhs = merge(lhs, dim=pd.Index(ext_carriers, name="carrier"))
 
-    min_matrix = agg_p_nom_minmax["min"].to_xarray().unstack().reindex_like(lhs)
-    max_matrix = agg_p_nom_minmax["max"].to_xarray().unstack().reindex_like(lhs)
+    min_matrix = (
+        agg_p_nom_minmax["min"].to_xarray().unstack().reindex_like(lhs)
+    )
+    max_matrix = (
+        agg_p_nom_minmax["max"].to_xarray().unstack().reindex_like(lhs)
+    )
 
     n.model.add_constraints(
         lhs >= min_matrix, name="agg_p_nom_min", mask=min_matrix.notnull()
@@ -459,9 +530,15 @@ def update_capacity_constraint(n):
         capacity_variable = n.model["Generator-p_nom"].rename(
             {"Generator-ext": "Generator"}
         )
-        lhs = dispatch + reserve - capacity_variable * xr.DataArray(p_max_pu[ext_i])
+        lhs = (
+            dispatch
+            + reserve
+            - capacity_variable * xr.DataArray(p_max_pu[ext_i])
+        )
 
-    rhs = (p_max_pu[fix_i] * capacity_fixed).reindex(columns=gen_i, fill_value=0)
+    rhs = (p_max_pu[fix_i] * capacity_fixed).reindex(
+        columns=gen_i, fill_value=0
+    )
 
     n.model.add_constraints(lhs <= rhs, name="gen_updated_capacity_constraint")
 
@@ -562,7 +639,10 @@ def add_RES_constraints(n, res_share, config):
 
     # Generators
     lhs_gen = (
-        (n.model["Generator-p"].loc[:, gens_i] * n.snapshot_weightings.generators)
+        (
+            n.model["Generator-p"].loc[:, gens_i]
+            * n.snapshot_weightings.generators
+        )
         .groupby(ggrouper.to_xarray())
         .sum()
     )
@@ -571,11 +651,15 @@ def add_RES_constraints(n, res_share, config):
     store_disp_expr = (
         n.model["StorageUnit-p_dispatch"].loc[:, stores_i] * stores_t_weights
     )
-    store_expr = n.model["StorageUnit-p_store"].loc[:, stores_i] * stores_t_weights
+    store_expr = (
+        n.model["StorageUnit-p_store"].loc[:, stores_i] * stores_t_weights
+    )
     charge_expr = n.model["Link-p"].loc[:, charger_i] * stores_t_weights.apply(
         lambda r: r * n.links.loc[charger_i].efficiency
     )
-    discharge_expr = n.model["Link-p"].loc[:, discharger_i] * stores_t_weights.apply(
+    discharge_expr = n.model["Link-p"].loc[
+        :, discharger_i
+    ] * stores_t_weights.apply(
         lambda r: r * n.links.loc[discharger_i].efficiency
     )
 
@@ -610,7 +694,9 @@ def _add_land_use_constraint(n):
             .groupby(n.generators.bus.map(n.buses.location))
             .sum()
         )
-        existing.index += " " + carrier + "-" + snakemake.wildcards.planning_horizons
+        existing.index += (
+            " " + carrier + "-" + snakemake.wildcards.planning_horizons
+        )
         n.generators.loc[existing.index, "p_nom_max"] -= existing
 
     n.generators.p_nom_max.clip(lower=0, inplace=True)
@@ -642,9 +728,13 @@ def _add_land_use_constraint_m(n):
 
         for p_year in previous_years:
             ind2 = [
-                i for i in ind if i + " " + carrier + "-" + p_year in existing.index
+                i
+                for i in ind
+                if i + " " + carrier + "-" + p_year in existing.index
             ]
-            sel_current = [i + " " + carrier + "-" + current_horizon for i in ind2]
+            sel_current = [
+                i + " " + carrier + "-" + current_horizon for i in ind2
+            ]
             sel_p_year = [i + " " + carrier + "-" + p_year for i in ind2]
             n.generators.loc[sel_current, "p_nom_max"] -= existing.loc[
                 sel_p_year
@@ -666,7 +756,8 @@ def add_h2_network_cap(n, cap):
             f"Impossible to set a limit for H2 pipelines extension for the following links: {diff_index}"
         )
     lhs = (
-        h2_network_cap.loc[subset_index] * h2_network.loc[subset_index, "length"]
+        h2_network_cap.loc[subset_index]
+        * h2_network.loc[subset_index, "length"]
     ).sum()
     rhs = cap * 1000
     n.model.add_constraints(lhs <= rhs, name="h2_network_cap")
@@ -674,26 +765,34 @@ def add_h2_network_cap(n, cap):
 
 def H2_export_yearly_constraint(n):
     res = [
-        "csp",
-        "rooftop-solar",
-        "solar",
         "onwind",
         "onwind2",
         "offwind",
         "offwind2",
         "ror",
     ]
-    res_index = n.generators.loc[n.generators.carrier.isin(res)].index
+    gen_p = n.model["Generator-p"]  # xarray.DataArray
 
-    weightings = pd.DataFrame(
-        np.outer(n.snapshot_weightings["generators"], [1.0] * len(res_index)),
-        index=n.snapshots,
-        columns=res_index,
+    # Boolean mask for RES generators
+    res_mask = n.generators.carrier.isin(res).values
+
+    # Extract snapshot coordinate from the variable itself
+    snapshots = gen_p.coords["snapshot"]
+
+    # Build weighting array with the same snapshot coordinate
+    weightings_xr = xr.DataArray(
+        n.snapshot_weightings["generators"]
+        .reindex(snapshots.to_index())
+        .values,
+        dims=["snapshot"],
+        coords={"snapshot": snapshots},
     )
-    capacity_variable = n.model["Generator-p"]
 
-    # single line sum
-    res = (weightings * capacity_variable.loc[res_index]).sum()
+    # Select RES generators without converting to Pandas
+    gen_p_res = gen_p.isel(Generator=res_mask)
+
+    # Multiply and sum over both dimensions
+    lhs = (weightings_xr * gen_p_res).sum(dim=["snapshot", "Generator"])
 
     load_ind = n.loads[n.loads.carrier == "AC"].index.intersection(
         n.loads_t.p_set.columns
@@ -703,11 +802,66 @@ def H2_export_yearly_constraint(n):
         n.loads_t.p_set[load_ind].sum(axis=1) * n.snapshot_weightings["generators"]
     ).sum()
 
+    n.add(
+        "Bus",
+        "H2 export bus",
+        carrier="H2",
+    )
+
+    from _helpers import prepare_costs
+
+    # Prepare the costs dataframe
+    Nyears = n.snapshot_weightings.generators.sum() / 8760
+    cost_year = snakemake.config["scenario"]["planning_horizons"][0]
+    costs = prepare_costs(
+        f"resources/{cost_year}_BAU_h2/costs_{cost_year}.csv",
+        snakemake.config["costs"],
+        "GBP",
+        snakemake.config["costs"]["fill_values"],
+        Nyears,
+        snakemake.config["costs"]["default_exchange_rate"],
+    )
+    n.add(
+        "Link",
+        name="H2 export",
+        bus0="IS0 1",
+        bus1="H2 export bus",
+        p_nom_extendable=True,
+        carrier="H2 electrolysis",
+        efficiency=0.6217,
+    )
+
+    n.add(
+        "Store",
+        "H2 export store",
+        bus="H2 export bus",
+        e_nom_extendable=True,
+        carrier="H2",
+        e_initial=0,  # actually not required, since e_cyclic=True
+        marginal_cost=0,
+        capital_cost=costs.at[
+            "hydrogen storage tank type 1 including compressor", "fixed"
+        ],
+        e_cyclic=True,
+    )
+    export_h2 = snakemake.config["export"]["h2export"] * 1e6
+
+    export_profile = export_h2 / 8760
+    # snapshots = pd.date_range(freq="h", **snakemake.config["snapshots"])
+    # export_profile = pd.Series(export_profile, index=snapshots)
+
+    n.add(
+        "Load",
+        "H2 export load",
+        bus="H2 export bus",
+        p_set=export_profile,
+    )
+
     h2_export = n.loads.loc["H2 export load"].p_set * 8760
 
-    lhs = res
+    # lhs = res
 
-    include_country_load = snakemake.config["policy_config"]["yearly"][
+    include_country_load = snakemake.config["policy_config"]["hydrogen"][
         "re_country_load"
     ]
 
@@ -719,16 +873,13 @@ def H2_export_yearly_constraint(n):
             h2_export * (1 / elec_efficiency) + load
         )  # 0.7 is approximation of electrloyzer efficiency # TODO obtain value from network
     else:
-        rhs = h2_export * (1 / 0.7)
+        rhs = export_h2 * (1 / 0.7)
 
-    n.model.add_constraints(lhs >= rhs, name="H2ExportConstraint-RESproduction")
+    # n.model.add_constraints(lhs >= rhs, name="H2ExportConstraint-RESproduction")
 
 
 def monthly_constraints(n, n_ref):
     res_techs = [
-        "csp",
-        "rooftop-solar",
-        "solar",
         "onwind",
         "onwind2",
         "offwind",
@@ -744,15 +895,15 @@ def monthly_constraints(n, n_ref):
         index=n.snapshots,
         columns=res_index,
     )
-    capacity_variable = n.model["Generator-p"]
+    capacity_variable = n.model["Generator-p"].to_pandas()
 
     # single line sum
     res = (weightings * capacity_variable[res_index]).sum(axis=1)
     res = res.groupby(res.index.month).sum()
 
-    link_p = n.model["Link-p"]
+    link_p = n.model["Link-p"].to_pandas()
     electrolysis = link_p.loc[
-        n.links.index[n.links.index.str.contains("H2 Electrolysis")]
+        :, n.links.index[n.links.index.str.contains("H2 Electrolysis")]
     ]
 
     weightings_electrolysis = pd.DataFrame(
@@ -784,7 +935,7 @@ def monthly_constraints(n, n_ref):
         )
 
         for i in range(len(res.index)):
-            lhs = res.iloc[i] + "\n" + elec_input.iloc[i]
+            lhs = res.iloc[i] + elec_input.iloc[i]
             rhs = res_ref.iloc[i] + elec_input_ref.iloc[i]
             n.model.add_constraints(
                 lhs >= rhs, name=f"RESconstraints_{i}-REStarget_{i}"
@@ -1061,6 +1212,10 @@ def extra_functionality(n, snapshots):
     ):
         if not snakemake.config["policy_config"]["hydrogen"]["is_reference"]:
             logger.info("setting h2 export to monthly greenness constraint")
+            n_ref_path = snakemake.config["policy_config"]["hydrogen"][
+                "path_to_ref"
+            ]
+            n_ref = pypsa.Network(n_ref_path)
             monthly_constraints(n, n_ref)
         else:
             logger.info("preparing reference case for additionality constraint")

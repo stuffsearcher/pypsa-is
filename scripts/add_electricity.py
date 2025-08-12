@@ -372,7 +372,7 @@ def attach_wind_and_solar(
     df = ppl.rename(columns={"country": "Country"})
 
     for tech in technologies:
-        if tech == "hydro":
+        if tech == "hydro" or tech == "solar":
             continue
 
         if tech == "offwind-ac":
