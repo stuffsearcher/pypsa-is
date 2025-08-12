@@ -3,7 +3,7 @@
 countries: [IS]
 
 run:
-  name: base_case    # use this to keep track of runs with different settings
+  name: 2050_high_h2 # use this to keep track of runs with different settings
   shared_cutouts: true # set to true to share the default cutout(s) across runs
   # Note: value false requires build_cutout to be enabled
   download_osm_data: false # If 'true', OpenStreetMap data will be downloaded for the above given countries
@@ -28,12 +28,13 @@ cluster_options:
 load_options:
   ssp: ssp2-2.6   # shared socio-economic pathway (GDP and population growth) scenario to consider
   weather_year: 2013 # Load scenarios available with different weather year (different renewable potentials)
-  prediction_year: 2030 # Load scenarios available with different prediction year (GDP, population)
-  scale: 1 # scales all load time-series, i.e. 2 = doubles load
+  prediction_year: 2050 # Load scenarios available with different prediction year (GDP, population)
+  scale: 1.93 # scales all load time-series, i.e. 2 = doubles load
 
 electricity:
   base_voltage: 220.
-  powerplants_filter: (DateOut >= 2022 or DateOut != DateOut) and DateIn <= 2023
+  co2limit: 0
+  powerplants_filter: (DateOut >= 2022 or DateOut != DateOut) and DateIn <= 2050
   custom_powerplants: replace   #  "false" use only powerplantmatching (ppm) data, "merge" combines ppm and custom powerplants, "replace" use only custom powerplants
   operational_reserve: # like https://genxproject.github.io/GenX.jl/stable/Model_Reference/core/#Operational-Reserves
     activate: false
@@ -41,9 +42,10 @@ electricity:
     epsilon_vres: 0.02 # share of total renewable supply
     contingency: 200 # fixed capacity in MW
   extendable_carriers:
-    Generator: [geothermal, OCGT]
-    StorageUnit: [] # battery, H2
-    Store: [] #[battery, H2]
+    Generator: [onwind, offwind-ac, offwind-dc, geothermal, OCGT]
+    StorageUnit: [battery] # battery, H2
+    Store: [H2] #[battery, H2]
+    Link: [H2 pipeline]
   estimate_renewable_capacities:
     technology_mapping:
       Onshore: []
@@ -58,7 +60,7 @@ renewable:
     extendable: false
 
 costs:
-  year: 2020
+  year: 2050
   output_currency: GBP
 
 sector:
@@ -75,3 +77,19 @@ demand_data:
 
   other_industries: false # Whether or not to include industries that are not specified. some countries have has exaggerated numbers, check carefully.
   aluminium_year: 2019 # Year of the aluminium demand data specified in `data/AL_production.csv`
+
+policy_config:
+  hydrogen:
+    temporal_matching: no_res_matching   # either "h2_yearly_matching", "h2_monthly_matching", "no_res_matching"
+    spatial_matching: false
+    additionality: false # RE electricity is equal to the amount required for additional hydrogen export compared to the 0 export case ("reference_case")
+    allowed_excess: 1.2
+    is_reference: false # Whether or not this network is a reference case network, relevant only if additionality is _true_
+    path_to_ref: results/2030_BAU_p2024/networks/elec_s_30m_ec_lcopt_Co2L-1h.nc   # Path to the reference case network for additionality calculation, relevant only if additionality is _true_ and is_reference is _false_
+    re_country_load: false # Set to "True" to force the RE electricity to be equal to the electricity required for hydrogen export and the country electricity load. "False" excludes the country electricity load from the constraint.
+
+export:
+  endogenous: true
+  store: true # [True, False] # specifies whether an export store to balance demand is implemented
+  h2export: 1.1 # Yearly export demand in TWh. Only considered, if ["export"]["endogenous"] is set to false
+  export_profile: constant   # use "ship" or "constant". Only considered, if ["export"]["endogenous"] is set to false

@@ -3,7 +3,7 @@
 countries: [IS]
 
 run:
-  name: 2030_high   # use this to keep track of runs with different settings
+  name: 2030_BAU_wb # use this to keep track of runs with different settings
   shared_cutouts: true # set to true to share the default cutout(s) across runs
   # Note: value false requires build_cutout to be enabled
   download_osm_data: false # If 'true', OpenStreetMap data will be downloaded for the above given countries
@@ -20,7 +20,7 @@ cluster_options:
   alternative_clustering: false # "False" use Voronoi shapes, "True" use GADM shapes  
   simplify_network:
     exclude_carriers: [solar]
-    p_threshold_merge_isolated: 1000 # [MW] isolated buses are being merged into a single isolated bus if a bus mean power is below the specified 
+    p_threshold_merge_isolated: 1000 # [MW] isolated buses are being merged into a single isolated bus if a bus mean power is below the specified threshold
   cluster_network:
     feature: onwind-time
     exclude_carriers: [solar]
@@ -29,7 +29,7 @@ load_options:
   ssp: ssp2-2.6   # shared socio-economic pathway (GDP and population growth) scenario to consider
   weather_year: 2013 # Load scenarios available with different weather year (different renewable potentials)
   prediction_year: 2030 # Load scenarios available with different prediction year (GDP, population)
-  scale: 1.14 # scales all load time-series, i.e. 2 = doubles load
+  scale: 1.05 # scales all load time-series, i.e. 2 = doubles load
 
 electricity:
   base_voltage: 220.
@@ -41,9 +41,12 @@ electricity:
     epsilon_vres: 0.02 # share of total renewable supply
     contingency: 200 # fixed capacity in MW
   extendable_carriers:
-    Generator: [geothermal, OCGT]
-    StorageUnit: [] # battery, H2
+    Generator: [onwind, offwind-ac, offwind-dc, geothermal, OCGT]
+    StorageUnit: [battery] # battery, H2
     Store: [] #[battery, H2]
+  estimate_renewable_capacities:
+    technology_mapping:
+      Onshore: []
 
 renewable:
   hydro:
