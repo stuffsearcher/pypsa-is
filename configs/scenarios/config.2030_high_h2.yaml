@@ -44,7 +44,7 @@ electricity:
     Generator: [onwind, offwind-ac, offwind-dc, geothermal, OCGT]
     StorageUnit: [battery] # battery, H2
     Store: [H2] #[battery, H2]
-    Link: [H2 pipeline]
+    Link: []
   estimate_renewable_capacities:
     technology_mapping:
       Onshore: []

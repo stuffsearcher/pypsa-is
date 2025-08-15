@@ -75,3 +75,6 @@ screenlog*
 # Exclude specific file paths
 !data/demand/unsd/paths/Energy_Statistics_Database.xlsx
 !data/custom_powerplants.csv
+
+plots/
+plots.py

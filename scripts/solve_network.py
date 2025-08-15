@@ -175,9 +175,6 @@ def parameters_fix(n):
         hydro_storage_units.index, "cyclic_state_of_charge_per_period"
     ] = False
 
-    n.generators.loc[n.generators.carrier == "geothermal", "capital_cost"] = (
-        300_000
-    )
     n.generators.loc[n.generators.carrier == "ror", "marginal_cost"] = 0
 
     last_snap = n.snapshots[-1]
@@ -196,7 +193,23 @@ def parameters_fix(n):
     n.carriers.loc["Load", "co2_emissions"] = (
         0.2571  # Same as oil for load shedding
     )
+    from _helpers import prepare_costs
 
+    # Prepare the costs dataframe
+    Nyears = n.snapshot_weightings.generators.sum() / 8760
+    cost_year = snakemake.config["scenario"]["planning_horizons"][0]
+    costs = prepare_costs(
+        f"resources/{cost_year}_BAU_h2/costs_{cost_year}.csv",
+        snakemake.config["costs"],
+        "GBP",
+        snakemake.config["costs"]["fill_values"],
+        Nyears,
+        snakemake.config["costs"]["default_exchange_rate"],
+    )
+
+    n.generators.loc[n.generators.carrier == "geothermal", "capital_cost"] = (
+        costs.at["central geothermal heat source", "fixed"]
+    )
     if snakemake.config["export"]["endogenous"]:
         n.add(
             "Bus",
@@ -204,19 +217,6 @@ def parameters_fix(n):
             carrier="H2",
         )
 
-        from _helpers import prepare_costs
-
-        # Prepare the costs dataframe
-        Nyears = n.snapshot_weightings.generators.sum() / 8760
-        cost_year = snakemake.config["scenario"]["planning_horizons"][0]
-        costs = prepare_costs(
-            f"resources/{cost_year}_BAU_h2/costs_{cost_year}.csv",
-            snakemake.config["costs"],
-            "GBP",
-            snakemake.config["costs"]["fill_values"],
-            Nyears,
-            snakemake.config["costs"]["default_exchange_rate"],
-        )
         n.add(
             "Link",
             name="H2 export",

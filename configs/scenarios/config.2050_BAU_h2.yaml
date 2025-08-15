@@ -91,5 +91,5 @@ policy_config:
 export:
   endogenous: true
   store: true # [True, False] # specifies whether an export store to balance demand is implemented
-  h2export: 1.1 # Yearly export demand in TWh. Only considered, if ["export"]["endogenous"] is set to false
+  h2export: 18.13 # Yearly export demand in TWh. Only considered, if ["export"]["endogenous"] is set to false
   export_profile: constant   # use "ship" or "constant". Only considered, if ["export"]["endogenous"] is set to false
